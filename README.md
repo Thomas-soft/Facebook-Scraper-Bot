@@ -5,9 +5,11 @@ Compatible with **Windows, macOS, Ubuntu, Debian, and Fedora**.
 
 ---
 
-⚠️ **Disclaimer:** This project is for educational purposes only.  
-Scraping Facebook without permission may violate its Terms of Service.  
-The author is not responsible for any misuse of this tool.
+⚠️ **Disclaimer:**  
+This project is **for educational and research purposes only**.  
+Scraping Facebook without explicit permission **may violate its Terms of Service**.  
+It is the user’s responsibility to comply with local laws and platform policies.  
+The author **does not endorse nor encourage** any misuse of this tool.
 
 ---
 
