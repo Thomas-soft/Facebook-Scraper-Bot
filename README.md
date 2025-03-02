@@ -140,6 +140,12 @@ docker run --env-file .env facebook-scraper
 
 ---
 
+⚠️ **Disclaimer:** This project is for educational purposes only.  
+Scraping Facebook without permission may violate its Terms of Service.  
+The author is not responsible for any misuse of this tool.
+
+---
+
 ## 📄 **License**
 This project is licensed under the MIT License.
 
