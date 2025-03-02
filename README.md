@@ -5,6 +5,12 @@ Compatible with **Windows, macOS, Ubuntu, Debian, and Fedora**.
 
 ---
 
+⚠️ **Disclaimer:** This project is for educational purposes only.  
+Scraping Facebook without permission may violate its Terms of Service.  
+The author is not responsible for any misuse of this tool.
+
+---
+
 ## 📋 **Prerequisites**
 
 Before starting, make sure you have the following installed:  
@@ -137,12 +143,6 @@ docker run --env-file .env facebook-scraper
 ## 🔗 **Useful Links**
 - 📌 [Download ChromeDriver](https://sites.google.com/chromium.org/driver/)
 - 📌 [Python Downloads](https://www.python.org/downloads/)
-
----
-
-⚠️ **Disclaimer:** This project is for educational purposes only.  
-Scraping Facebook without permission may violate its Terms of Service.  
-The author is not responsible for any misuse of this tool.
 
 ---
 
