@@ -67,18 +67,24 @@ class FakeCursor:
         y = (1 - t) ** 2 * p0[1] + 2 * (1 - t) * t * p1[1] + t ** 2 * p2[1]
         return (x, y)
 
-    def move_random(self, start, end):
+    def move_random(self, start=None, end=None):
         """
         Simule un mouvement de souris naturel entre deux positions.
         
         Utilise :
-          - Une courbe de Bézier quadratique pour lisser la trajectoire.
-          - La fonction d'easing easeOutBack pour générer un léger dépassement.
-          - Un jitter dégressif pour imiter l'imprécision humaine.
+        - Une courbe de Bézier quadratique pour lisser la trajectoire.
+        - La fonction d'easing easeOutBack pour générer un léger dépassement.
+        - Un jitter dégressif pour imiter l'imprécision humaine.
         
-        :param start: Tuple (x, y) de la position de départ.
-        :param end: Tuple (x, y) de la position d'arrivée.
+        :param start: Tuple (x, y) de la position de départ. Par défaut, la position actuelle.
+        :param end: Tuple (x, y) de la position d'arrivée. Doit être spécifié.
         """
+        if start is None:
+            start = self.__current_position  # Utiliser la position actuelle si aucun point de départ n'est fourni
+
+        if end is None:
+            raise ValueError("L'argument 'end' est requis pour déplacer le curseur.")
+
         steps = random.randint(55, 65)
         base_delay = random.uniform(0.010, 0.015)
 

@@ -14,12 +14,12 @@ time.sleep(2)  # Attendre le chargement complet de la page
 # Création de l'instance du FakeCursor (singleton)
 cursor = FakeCursor()
 
-# Définir des positions (exemple : déplacer la souris de (100, 100) à (780, 766))
-start_position = (100, 100)
+# Définir des positions (exemple : déplacer la souris de la position actuelle (None) à (780, 766))
+start_position = None
 end_position = (780, 766)
 
 # Simulation d'un mouvement naturel de la souris
-cursor.move_random(start_position, end_position)
+cursor.move_random(None, end_position)
 
 # Simulation d'un clic à la position actuelle de la souris
 cursor.click()
