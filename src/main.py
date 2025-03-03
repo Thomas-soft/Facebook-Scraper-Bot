@@ -98,86 +98,116 @@ def redirect_to_group():
 def change_post_order():
     try:
         # Cliquer sur "Most relevant"
-        print("Ouverture du menu des posts...")
+        print("Ouverture du menu des post...")
         most_relevant_xpath = "//span[contains(text(), 'Most relevant')]"
         find_element_and_click(most_relevant_xpath)
         time.sleep(random.uniform(0.5, 1))
         
-        # Cliquer sur "Show recent posts first"
-        print("Sélection de 'Show recent posts first'...")
-        recent_posts_xpath = "//span[contains(text(), 'Show recent posts first')]"
-        find_element_and_click(recent_posts_xpath)
+        # Cliquer sur "Show recent post first"
+        print("Sélection de 'Show recent post first'...")
+        recent_post_xpath = "//span[contains(text(), 'Show recent post first')]"
+        find_element_and_click(recent_post_xpath)
     except Exception as e:
-        print(f"Erreur lors du changement d'ordre des posts : {e}")
+        print(f"Erreur lors du changement d'ordre des post : {e}")
 
 
-def extract_first_post():
-    """Extrait le maximum d'informations du premier post affiché."""
+def extract_post(driver, max_post=5):
+    """Extrait plusieurs post à partir de la div contenant role='feed'."""
     try:
-        print("Recherche du premier post...")
+        print("🔍 Recherche de la section 'feed'...")
 
-        # Trouver tous les posts en utilisant l'attribut aria-posinset
-        posts = driver.find_elements(By.CSS_SELECTOR, "div[aria-posinset]")
+        # Attendre que la div role="feed" apparaisse
+        feed = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.XPATH, "//div[@role='feed']"))
+        )
 
-        if not posts:
-            print("Aucun post trouvé.")
-            return
+        # Récupérer **toutes** les div qui suivent immédiatement après cette div "feed"
+        post = feed.find_elements(By.XPATH, "./div")
 
-        first_post = posts[0]  # Sélectionne le premier post affiché
-        post_info = {}
+        if not post:
+            print("❌ Aucun post trouvé.")
+            return []
 
-        # Extraction de l'auteur
-        try:
-            post_info["Auteur"] = first_post.find_element(By.XPATH, ".//h2 | .//span/strong").text
-        except:
-            post_info["Auteur"] = "Inconnu"
+        print(f"📌 {len(post)} post détectés. Extraction des {min(len(post), max_post)} premiers.")
 
-        # Extraction de la date
-        try:
-            post_info["Date"] = first_post.find_element(By.XPATH, ".//abbr | .//span[contains(@class, 'timestamp')]").text
-        except:
-            post_info["Date"] = "Non disponible"
+        extracted_post = []
 
-        # Extraction du texte du post
-        try:
-            post_info["Texte"] = first_post.find_element(By.XPATH, ".//div[contains(@data-ad-preview, 'message')]").text
-        except:
-            post_info["Texte"] = "Aucun texte détecté"
+        for post in post[1:max_post]:  # Limiter le nombre de post à extraire
+            post_info = {}
 
-        # Extraction des images du post
-        post_info["Images"] = []
-        try:
-            images = first_post.find_elements(By.TAG_NAME, "img")
-            for img in images:
-                img_src = img.get_attribute("src")
-                if img_src and "emoji" not in img_src:
-                    post_info["Images"].append(img_src)
-        except:
-            pass
+            # 🔹 Extraction de l'auteur
+            try:
+                post_info["Auteur"] = post.find_element(By.XPATH, ".//h2 | .//span/strong").text
+            except:
+                post_info["Auteur"] = "Inconnu"
 
-        # Extraction des liens externes
-        post_info["Liens"] = []
-        try:
-            links = first_post.find_elements(By.TAG_NAME, "a")
-            for link in links:
-                href = link.get_attribute("href")
-                if href and "facebook.com" not in href:
-                    post_info["Liens"].append(href)
-        except:
-            pass
+            # 🔹 Recherche de la div avec data-ad-rendering-role="story_message"
+            try:
+                message_div = post.find_element(By.XPATH, ".//div[@data-ad-rendering-role='story_message']")
+                text_content = message_div.text.strip()
+                if text_content:
+                    post_info["Texte"] = text_content
+                else:
+                    post_info["Texte"] = "Aucun texte détecté"
+            except:
+                post_info["Texte"] = "Aucun texte détecté"
 
-        # Affichage des informations du post
-        print("\n✅ **Informations du post extrait :**")
-        for key, value in post_info.items():
-            if isinstance(value, list):
-                print(f"{key}:")
-                for item in value:
-                    print(f"  - {item}")
-            else:
+            # 4️⃣ Images du post (en filtrant les emojis)
+            try:
+                images = post.find_elements(By.XPATH, ".//img")
+
+                # Filtrer les images : prendre celles dont la largeur/hauteur est > 100 pixels et qui ne sont pas des emojis
+                image_urls = [
+                    img.get_attribute("src") for img in images
+                    if img.get_attribute("src")
+                    and int(img.get_attribute("width") or 0) > 100  # Largeur > 100
+                    and int(img.get_attribute("height") or 0) > 100  # Hauteur > 100
+                    and "emoji" not in img.get_attribute("src")  # Exclure les emojis
+                ]
+
+                post_info["Images"] = image_urls if image_urls else "Aucune image"
+            except:
+                post_info["Images"] = "Erreur lors de l'extraction"
+
+            # 5️⃣ Vidéos du post
+            try:
+                videos = post.find_elements(By.XPATH, ".//video")
+                video_urls = [video.get_attribute("src") for video in videos if video.get_attribute("src")]
+                post_info["Vidéos"] = video_urls if video_urls else "Aucune vidéo"
+            except:
+                post_info["Vidéos"] = "Erreur lors de l'extraction"
+
+            # 6️⃣ Liens externes
+            try:
+                links = post.find_elements(By.XPATH, ".//a")
+                external_links = [
+                    link.get_attribute("href")
+                    for link in links
+                    if link.get_attribute("href") and "facebook.com" not in link.get_attribute("href")
+                ]
+                post_info["Liens externes"] = external_links if external_links else "Aucun lien externe"
+            except:
+                post_info["Liens externes"] = "Erreur lors de l'extraction"
+
+            # 🔹 Extraction de la date
+            try:
+                post_info["Date"] = post.find_element(By.XPATH, ".//abbr | .//span[contains(@class, 'timestamp')]").text
+            except:
+                post_info["Date"] = "Non disponible"
+
+            extracted_post.append(post_info)
+
+        # 📌 Affichage des post extraits
+        for i, post in enumerate(extracted_post, 1):
+            print(f"\n✅ **Post {i} extrait :**")
+            for key, value in post.items():
                 print(f"{key}: {value}")
 
+        return extracted_post
+
     except Exception as e:
-        print(f"Erreur lors de l'extraction du premier post : {e}")
+        print(f"⚠️ Erreur lors de l'extraction des post : {e}")
+        return []
 
 
 # ✅ Vérifie si des cookies existent
@@ -200,8 +230,8 @@ time.sleep(random.uniform(2, 5))
 redirect_to_group()
 # time.sleep(random.uniform(1, 3))
 # change_post_order()
-time.sleep(random.uniform(5, 10))
-extract_first_post()
+time.sleep(random.uniform(4, 7))
+extract_post(driver, 5)
 
 input("Press Enter to close the browser...")
 driver.quit()
