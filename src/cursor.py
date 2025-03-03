@@ -112,11 +112,11 @@ class FakeCursor:
             t_param = i / steps
             eased_t = self.__ease_out_back(t_param, overshoot=overshoot)
             bx, by = self.__quadratic_bezier(start, control, end, eased_t)
-            jitter_amplitude = random.uniform(0.5, 2) * math.sin(math.pi * t_param)
+            jitter_amplitude = random.uniform(0.25, 1.5) * math.sin(math.pi * t_param)
             bx += random.uniform(-jitter_amplitude, jitter_amplitude)
             by += random.uniform(-jitter_amplitude, jitter_amplitude)
             self.__move_cursor(bx, by)
-            time.sleep(base_delay * random.uniform(0.9, 1.1))
+            time.sleep(base_delay * random.uniform(0.4, 0.9))
 
     def click(self):
         """
@@ -126,8 +126,6 @@ class FakeCursor:
         if self.__current_position is None:
             raise Exception("Position inconnue pour cliquer. Déplacez d'abord le curseur.")
         x, y = self.__current_position
-        # Déplacement explicite (facultatif) pour s'assurer que la souris est bien à la bonne position
-        pyautogui.moveTo(x, y)
         pyautogui.mouseDown()
         time.sleep(random.uniform(0.05, 0.1))
         pyautogui.mouseUp()
