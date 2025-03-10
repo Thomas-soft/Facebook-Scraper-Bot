@@ -1,6 +1,10 @@
+# Description: Module pour simuler la frappe d'un humain
+# Version: 1.0
+
 import pyautogui
 import random
 import time
+
 
 def type_like_human(text):
     for char in text:

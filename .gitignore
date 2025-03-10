@@ -1,2 +1,5 @@
 .env
 .cookies.pkl
+src/__pycache__
+src/utils/__pycache__
+src/automation/__pycache__

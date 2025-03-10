@@ -85,8 +85,8 @@ class FakeCursor:
         if end is None:
             raise ValueError("L'argument 'end' est requis pour déplacer le curseur.")
 
-        steps = random.randint(55, 65)
-        base_delay = random.uniform(0.010, 0.015)
+        steps = random.randint(15, 25)
+        # base_delay = random.uniform(0.0010, 0.0015)
 
         x1, y1 = start
         x2, y2 = end
@@ -116,7 +116,7 @@ class FakeCursor:
             bx += random.uniform(-jitter_amplitude, jitter_amplitude)
             by += random.uniform(-jitter_amplitude, jitter_amplitude)
             self.__move_cursor(bx, by)
-            time.sleep(base_delay * random.uniform(0.4, 0.9))
+            # time.sleep(base_delay * random.uniform(0.4, 0.9))
 
     def click(self):
         """
@@ -129,3 +129,14 @@ class FakeCursor:
         pyautogui.mouseDown()
         time.sleep(random.uniform(0.05, 0.1))
         pyautogui.mouseUp()
+
+
+    def middle_click(self):
+        """
+        Simule un clic de souris réel en effectuant successivement un mouseDown puis un mouseUp.
+        Un délai court est ajouté entre les deux actions pour imiter un clic humain.
+        """
+        if self.__current_position is None:
+            raise Exception("Position inconnue pour cliquer. Déplacez d'abord le curseur.")
+        x, y = self.__current_position
+        pyautogui.middleClick()
