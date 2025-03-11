@@ -8,6 +8,65 @@ from selenium.webdriver.common.by import By
 from utils.elements import get_element_screen_position
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+import os
+import csv
+
+
+def load_scraped_keys(csv_file="posts.csv"):
+    """
+    Charge depuis le CSV existant les clés (ici : (Auteur, Texte)) des posts déjà scrappés.
+    """
+    keys = set()
+    if os.path.exists(csv_file):
+        with open(csv_file, mode="r", newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                # On utilise Auteur et Texte pour constituer une clé unique
+                key = (row.get("Auteur", "").strip(), row.get("Texte", "").strip())
+                keys.add(key)
+    return keys
+
+
+def save_posts_to_csv(posts, csv_file="posts.csv"):
+    """
+    Sauvegarde la liste des posts dans un fichier CSV.
+    Les colonnes sont : Auteur, Texte, Images, Videos, Liens externes, Date, Scrapped at.
+    """
+    fieldnames = ["Auteur", "Texte", "Images", "Videos", "Liens externes", "Date", "Scrapped at"]
+    file_exists = os.path.isfile(csv_file)
+
+    with open(csv_file, mode="a", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        if not file_exists:
+            writer.writeheader()
+
+        for post in posts:
+            row = {}
+            row["Auteur"] = post.get("Auteur", "")
+            row["Texte"] = post.get("Texte", "")
+            # Pour Images
+            images = post.get("Images", "")
+            if isinstance(images, list):
+                row["Images"] = ", ".join(images)
+            else:
+                row["Images"] = images
+            # Pour Videos : conversion de "Vidéos" vers "Videos"
+            videos = post.get("Vidéos", "")
+            if isinstance(videos, list):
+                row["Videos"] = ", ".join(videos)
+            else:
+                row["Videos"] = videos
+            # Pour Liens externes
+            links = post.get("Liens externes", "")
+            if isinstance(links, list):
+                row["Liens externes"] = ", ".join(links)
+            else:
+                row["Liens externes"] = links
+            row["Date"] = post.get("Date", "")
+            row["Scrapped at"] = time.strftime("%Y-%m-%d %H:%M:%S")
+            writer.writerow(row)
+    print(f"✅ {len(posts)} post(s) sauvegardé(s) dans '{csv_file}'.")
+
 
 
 def is_element_visible(driver, element, margin=100):
@@ -55,11 +114,8 @@ def click_author(driver, post_info, cursor):
     try:
         auteur_element = post_info.get("Auteur_element")
         if auteur_element is not None:
-            # Récupérer la position de l'élément auteur
             x, y = get_element_screen_position(driver, auteur_element)
-            # Déplacer le curseur vers l'élément
             cursor.move_random(end=(x + 5, y + 2))
-            # Effectuer un clic du milieu
             cursor.middle_click()
             print("🔘 Middle click sur l'auteur :", post_info.get("Auteur"))
         else:
@@ -68,7 +124,7 @@ def click_author(driver, post_info, cursor):
         print(f"⚠️ Erreur lors du clic sur l'auteur : {e}")
 
 
-def extract_post(driver, max_post=20):
+def extract_post(driver):
     """Extrait plusieurs post à partir de la div contenant role='feed'."""
     try:
         print("🔍 Recherche de la section 'feed'...")
@@ -171,30 +227,26 @@ def extract_post(driver, max_post=20):
         return []
 
 
-def scroll_and_extract(driver, cursor, scroll_amount=-2, pause_time=0.1, max_iterations=20):
+def scroll_and_extract(driver, cursor, csv_file="posts.csv", scroll_amount=-2, pause_time=0.1, max_iterations=5):
     """
-    Défile la page en utilisant pyautogui.scroll(), clique sur "See more" pour étendre les descriptions longues,
-    et extrait uniquement les posts visibles (vérifiés via is_element_visible sur l'élément auteur).
-    Pour chaque nouveau post, effectue un clic du milieu sur l'auteur (une seule fois par auteur).
+    Défile la page, clique sur "See more" et extrait les posts visibles.
+    L'extraction s'arrête dès que 'max_iterations' auteurs uniques (clics sur auteur) ont été collectés.
     """
     posts = []
-    seen_keys = set()       # Pour mémoriser les posts déjà affichés
-    clicked_authors = set() # Pour éviter de cliquer plusieurs fois sur le même auteur
-    printed_count = 0       # Compteur pour la numérotation continue des posts affichés
+    seen_keys = set()         # Clés locales pour les posts traités dans cette session
+    clicked_authors = set()   # Pour éviter de cliquer plusieurs fois sur le même auteur dans la session
+    first_run = not os.path.exists(csv_file)
+    target_authors = max_iterations  # On souhaite exactement 'max_iterations' auteurs uniques
+    existing_keys = load_scraped_keys(csv_file)
+    duplicate_counter = 0
 
-    for i in range(max_iterations):
-        # Utilisation de pyautogui pour défiler la page
+    while True:
         pyautogui.scroll(scroll_amount)
         time.sleep(pause_time)
-        print(f"🔄 Itération {i+1} : défilement de la page avec pyautogui.scroll({scroll_amount})...")
-        
-        # Clique sur tous les boutons "See more" avant l'extraction
         click_see_more_buttons(driver, cursor)
-        
-        # Extraction de tous les posts (même ceux hors écran)
         extracted = extract_post(driver)
-        
-        # On ne conserve que les posts dont l'élément auteur est visible
+
+        # On récupère uniquement les posts dont l'élément auteur est visible
         visible_posts = []
         for post in extracted:
             auteur_element = post.get("Auteur_element")
@@ -202,33 +254,43 @@ def scroll_and_extract(driver, cursor, scroll_amount=-2, pause_time=0.1, max_ite
                 visible_posts.append(post)
             else:
                 print("Post ignoré car son auteur n'est pas visible à l'écran.")
-        
-        new_posts = []
+
+        # Traiter chaque post visible
         for post in visible_posts:
-            key = (post.get("Auteur"), post.get("Date"), post.get("Texte"))
-            if key not in seen_keys:
+            # Normalisation de la clé pour éviter les différences dues aux espaces superflus
+            auteur_text = post.get("Auteur", "").strip()
+            texte_text = " ".join(post.get("Texte", "").split())
+            key = (auteur_text, texte_text)
+
+            # On ignore ce post si :
+            # - La clé est déjà présente (post identique déjà traité)
+            # - L'auteur a déjà été cliqué
+            if key in existing_keys or key in seen_keys or (auteur_text in clicked_authors):
+                duplicate_counter += 1
+                print("🔄 Post déjà scrappé ou auteur déjà traité :", key)
+            else:
+                duplicate_counter = 0
                 seen_keys.add(key)
                 posts.append(post)
-                new_posts.append(post)
-        
-        # Pour chaque nouveau post, cliquer sur l'auteur si ce n'est pas déjà fait
-        if new_posts:
-            for j, post in enumerate(new_posts, start=printed_count+1):
-                auteur = post.get("Auteur")
-                if auteur and auteur not in clicked_authors:
-                    click_author(driver, post, cursor)
-                    clicked_authors.add(auteur)
-                else:
-                    print(f"Auteur '{auteur}' déjà cliqué ou introuvable, passage au suivant.")
-            printed_count += len(new_posts)
-        else:
-            print("Aucun nouveau post visible détecté à cette itération.")
-        
-        # On arrête l'extraction après un certain nombre de posts extraits
-        if printed_count >= 50:
-            break
+                existing_keys.add(key)
+                print("🆕 Nouveau post ajouté :", key)
 
-    print(f"📝 Total posts extraits et traités : {printed_count}")
+                clic_num = len(clicked_authors) + 1
+                print(f"🔘 Clic numéro {clic_num} sur l'auteur : {auteur_text}")
+                click_author(driver, post, cursor)
+                clicked_authors.add(auteur_text)
+
+            # On s'arrête dès que le nombre d'auteurs uniques cliqués atteint le seuil cible
+            if len(clicked_authors) >= target_authors:
+                print(f"✅ Nombre d'auteurs cibles atteint ({target_authors}).")
+                return posts
+
+        # En mode non-premier lancement, on arrête si 3 posts consécutifs déjà scrapés sont rencontrés
+        if not first_run and duplicate_counter >= 3:
+            print("⚠️ 3 posts consécutifs déjà scrapés rencontrés. Arrêt de l'extraction.")
+            return posts
+
+    print(f"📝 Total posts extraits et traités : {len(posts)}")
     print("🔚 Fin de l'extraction.")
     print("Récapitulatif des posts extraits :")
     for i, post in enumerate(posts, 1):
