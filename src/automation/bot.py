@@ -5,6 +5,7 @@ from automation.scraper import extract_post, set_filter_recent, scroll_and_extra
 from automation.navigation import redirect_to_group
 from utils.cookies import has_saved_cookies, load_cookies
 from automation.login import login
+from utils.csv import update_csv_with_driver_downloads
 import time
 from utils.cursor import FakeCursor
 
@@ -31,7 +32,7 @@ def run_bot(driver, facebook_url, facebook_group_url, email, password):
     time.sleep(3)
 
     # Récupération des posts selon la logique définie :
-    posts = scroll_and_extract(driver, cursor, csv_file="posts.csv", scroll_amount=-1, pause_time=0.1, max_iterations=10)
+    posts = scroll_and_extract(driver, cursor, csv_file="posts.csv", scroll_amount=-1, pause_time=0.1, max_iterations=25)
     
     if posts:
         save_posts_to_csv(posts, csv_file="posts.csv")
@@ -39,4 +40,3 @@ def run_bot(driver, facebook_url, facebook_group_url, email, password):
         print("Aucun post nouveau à sauvegarder.")
 
     input("Press Enter to close the browser...")
-    driver.quit()

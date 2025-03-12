@@ -1,5 +1,4 @@
+pandas==2.2.3
 PyAutoGUI==0.9.54
 python-dotenv==1.0.1
-dotenv==0.9.9
 undetected-chromedriver==3.5.5
-selenium==4.29.0

@@ -26,6 +26,8 @@ def main():
     # Lancement du bot
     run_bot(driver, FB_WEBSITE_URL, FB_GROUP_URL, EMAIL, PASSWORD)
 
+    driver.quit()
+
 
 if __name__ == "__main__":
     main()
