@@ -19,7 +19,8 @@ def main():
     # Initialisation du navigateur
     options = uc.ChromeOptions()
     options.add_argument("--start-maximized")
-    driver = uc.Chrome(driver_executable_path=ChromeDriverManager().install(), options=options)
+    # driver = uc.Chrome(driver_executable_path=ChromeDriverManager().install(), options=options)
+    driver = uc.Chrome(options=options)
 
     COOKIES_FILE = ".cookies.pkl"
 
