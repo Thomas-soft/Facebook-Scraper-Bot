@@ -75,6 +75,7 @@ def wait_for_element(driver, xpath, timeout=10):
         print(f"⚠️ Wait for element failed for XPath '{xpath}': {e}")
         return None
 
+
 def click_author(driver, post_info, cursor):
     """
     Clicks the author element of a post using a middle click via the fake cursor.
@@ -143,7 +144,7 @@ def click_author(driver, post_info, cursor):
 
         # --- Step 2: Click on the text input area ---
         print("🔍 Looking for the text input area...")
-        input_xpath = "//div[@role='textbox']"
+        input_xpath = "//div[@data-visualcompletion=\"ignore\"]//div[@contenteditable='true' or @role='textbox']"
         message_input = wait_for_element(driver, input_xpath, timeout=10)
         if not message_input:
             print("⚠️ Text input not found; closing the tab.")
@@ -165,6 +166,9 @@ def click_author(driver, post_info, cursor):
         pyautogui.write("Hi", interval=0.1)
         print("⌨️ Typed 'Hi'")
         time.sleep(1)
+        # pyautogui.press("enter")
+        # time.sleep(3)
+        # print("🔤 Sent the message")
 
         # --- Step 4: Close the tab using keyboard shortcut ---
         if platform.system() == "Darwin":
